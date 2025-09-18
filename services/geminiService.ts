@@ -5,6 +5,34 @@
 
 import { GoogleGenAI, GenerateContentResponse, Modality } from "@google/genai";
 
+// Em um projeto com build (como o que o Netlify executa), as variáveis de ambiente
+// são acessadas através de `import.meta.env`. Elas DEVEM começar com o prefixo VITE_.
+// O Netlify injetará a variável que você configurou na UI durante o processo de build.
+//
+// Acessamos `import.meta.env` de forma segura para evitar uma quebra (tela branca) se o código
+// for executado em um ambiente sem build, onde `import.meta.env` não existe.
+const env = (import.meta as any).env;
+const API_KEY = env ? env.VITE_API_KEY : undefined;
+
+let ai: GoogleGenAI | null;
+
+if (!API_KEY) {
+  console.error("Chave de API do Gemini não encontrada. Verifique se a variável de ambiente VITE_API_KEY está configurada no Netlify e se o projeto está sendo buildado corretamente.");
+  ai = null;
+} else {
+  ai = new GoogleGenAI({ apiKey: API_KEY });
+}
+
+// Exporta uma verificação para a UI usar, para prevenir que o app quebre.
+export const isApiKeyConfigured = (): boolean => !!API_KEY;
+
+const getAiInstance = (): GoogleGenAI => {
+    if (!ai) {
+        throw new Error("A chave de API do Google Gemini não está configurada. Por favor, adicione VITE_API_KEY às suas variáveis de ambiente no Netlify e faça o redeploy.");
+    }
+    return ai;
+};
+
 const fileToPart = async (file: File) => {
     const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -55,10 +83,10 @@ const handleApiResponse = (response: GenerateContentResponse): string => {
     throw new Error(errorMessage);
 };
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 const model = 'gemini-2.5-flash-image-preview';
 
 export const generateModelImage = async (userImage: File): Promise<string> => {
+    const ai = getAiInstance();
     const userImagePart = await fileToPart(userImage);
     const prompt = "Você é uma IA especialista em fotografia de moda. Transforme a pessoa nesta imagem em uma foto de modelo de corpo inteiro para um site de e-commerce. O fundo deve ser um estúdio neutro e limpo (cinza claro, #f0f0f0). A pessoa deve ter uma expressão de modelo neutra e profissional. Preserve a identidade da pessoa, características únicas e tipo de corpo, mas coloque-a em uma pose de modelo padrão, relaxada и em pé. A imagem final deve ser fotorrealista. Retorne APENAS a imagem final.";
     const response = await ai.models.generateContent({
@@ -72,6 +100,7 @@ export const generateModelImage = async (userImage: File): Promise<string> => {
 };
 
 export const generateVirtualTryOnImage = async (modelImageUrl: string, garmentImage: File): Promise<string> => {
+    const ai = getAiInstance();
     const modelImagePart = dataUrlToPart(modelImageUrl);
     const garmentImagePart = await fileToPart(garmentImage);
     const prompt = `Você é uma IA especialista em provador virtual. Você receberá uma 'imagem da modelo' e uma 'imagem da peça de roupa'. Sua tarefa é criar uma nova imagem fotorrealista onde a pessoa da 'imagem da modelo' está vestindo a roupa da 'imagem da peça de roupa'.
@@ -93,6 +122,7 @@ export const generateVirtualTryOnImage = async (modelImageUrl: string, garmentIm
 };
 
 export const generatePoseVariation = async (tryOnImageUrl: string, poseInstruction: string): Promise<string> => {
+    const ai = getAiInstance();
     const tryOnImagePart = dataUrlToPart(tryOnImageUrl);
     const prompt = `Você é uma IA especialista em fotografia de moda. Pegue esta imagem e gere-a novamente de uma perspectiva diferente. A pessoa, a roupa e o estilo do fundo devem permanecer idênticos. A nova perspectiva deve ser: "${poseInstruction}". Retorne APENAS a imagem final.`;
     const response = await ai.models.generateContent({

@@ -9,7 +9,7 @@ import StartScreen from './components/StartScreen';
 import Canvas from './components/Canvas';
 import WardrobePanel from './components/WardrobeModal';
 import OutfitStack from './components/OutfitStack';
-import { generateVirtualTryOnImage, generatePoseVariation } from './services/geminiService';
+import { generateVirtualTryOnImage, generatePoseVariation, isApiKeyConfigured } from './services/geminiService';
 import { OutfitLayer, WardrobeItem } from './types';
 import { ChevronDownIcon, ChevronUpIcon } from './components/icons';
 import { defaultWardrobe } from './wardrobe';
@@ -52,6 +52,32 @@ const useMediaQuery = (query: string): boolean => {
 
 
 const App: React.FC = () => {
+  if (!isApiKeyConfigured()) {
+    return (
+      <div className="w-screen h-screen flex items-center justify-center bg-red-50 p-4 font-sans">
+        <div className="max-w-lg text-center bg-white p-8 rounded-2xl shadow-lg border border-red-200">
+          <h1 className="text-3xl font-bold text-red-700 font-serif">Erro de Configuração</h1>
+          <p className="mt-4 text-gray-800">
+            A chave de API do Google Gemini não foi encontrada. O aplicativo não pode funcionar sem ela.
+          </p>
+          <div className="mt-6 text-left bg-gray-50 p-4 rounded-lg border text-gray-700 text-sm">
+            <p className="font-semibold">Como resolver:</p>
+            <ol className="list-decimal list-inside mt-2 space-y-2">
+              <li>Vá para as configurações do seu site no <strong>Netlify</strong>.</li>
+              <li>Navegue até <strong>Build & deploy &rarr; Environment variables</strong>.</li>
+              <li>Crie uma variável com a chave (Key) <strong><code>VITE_API_KEY</code></strong>.</li>
+              <li>Cole sua chave de API do Google no campo de valor (Value).</li>
+              <li>Salve e <strong>acione um novo deploy</strong> para que a alteração tenha efeito.</li>
+            </ol>
+          </div>
+          <p className="mt-4 text-gray-500 text-xs">
+            Este erro acontece porque o código não conseguiu acessar a chave de API necessária para se comunicar com os modelos de IA do Google. A configuração correta no Netlify garante que a chave seja injetada de forma segura durante o processo de build.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const [modelImageUrl, setModelImageUrl] = useState<string | null>(null);
   const [outfitHistory, setOutfitHistory] = useState<OutfitLayer[]>([]);
   const [currentOutfitIndex, setCurrentOutfitIndex] = useState(0);
