@@ -1,6 +1,6 @@
 {
-  "name": "Provador virtual",
-  "description": "Carregue uma foto sua e uma roupa para ver como fica em você um provador virtual desenvolvido pela Nano Banana.",
+  "name": "Fit Check",
+  "description": "Upload a photo of yourself and an outfit to see how it looks on you. A virtual fitting room powered by Nano Banana.",
   "requestFramePermissions": [],
   "prompt": ""
 }
